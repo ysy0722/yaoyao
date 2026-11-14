@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Chrome 打开本页",
+      "type": "chrome",
+      "request": "launch",
+      "file": "${workspaceFolder}/index.html",
+      "runtimeArgs": ["--new-window"]
+    },
+    {
+      "name": "Chrome 打开本页（波纹演示模式）",
+      "type": "chrome",
+      "request": "launch",
+      "file": "${workspaceFolder}/index.html",
+      "runtimeArgs": ["--new-window"],
+      "userDataDir": "${workspaceFolder}/.chrome-demo",
+      "urlFilter": "index.html"
+    }
+  ]
+}

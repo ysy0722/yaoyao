@@ -1,0 +1,608 @@
+/* ============================================================
+   云中垚垚 · 立体书页登录页
+   结构：背景 / 立体书（封皮·纸页·书脊）/ 左页垚垚 · 右页登录
+   晕开效果发生在「书页里面」：书页场景 → 遮罩画布 → 页面内容
+   ============================================================ */
+
+:root {
+  --color-bg: #faf6ee;
+  --color-ink: #26251e;
+  --color-ink-soft: #504f49;
+  --color-paper: #f7eeda;
+  --color-amber: #a3763d;
+
+  --font-sans: "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Microsoft YaHei", sans-serif;
+  --font-serif: "Noto Serif SC", "Songti SC", "STSong", Georgia, serif;
+
+  /* 纸页遮罩：整张纸，上/下沿中缝处各挖一个相切的 V 口 */
+  --paper-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%201000%201000'%20preserveAspectRatio='none'%3E%3Cpath%20d='M0%200%20H382%20C430%200%20470%204%20500%2022%20C530%204%20570%200%20618%200%20H1000%20V1000%20H618%20C570%201000%20530%20996%20500%20978%20C470%20996%20430%201000%20382%201000%20H0%20Z'%20fill='%23000'/%3E%3C/svg%3E");
+
+  /* 封皮遮罩：封皮本身的上/下沿在中缝处也向书内凹一段，
+     这样露出来的那圈茶色包边是"跟着书脊弯下去"的弧带，而不是一条直横条 */
+  --cover-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%201000%201000'%20preserveAspectRatio='none'%3E%3Cpath%20d='M0%200%20H368%20C426%200%20474%203%20500%2012%20C526%203%20574%200%20632%200%20H1000%20V1000%20H632%20C574%201000%20526%20997%20500%20988%20C474%20997%20426%201000%20368%201000%20H0%20Z'%20fill='%23000'/%3E%3C/svg%3E");
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ============================ 页底背景 ============================ */
+.hero {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-height: 640px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* 书后面的背景：暖米色浅底 + 中央极轻的一层柔光（回到之前的配色） */
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(78% 60% at 50% 34%, #fffefb 0%, rgba(255, 254, 251, 0) 70%),
+    #faf6ee;
+}
+
+/* ============================ 3D 舞台 ============================ */
+.stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+}
+
+.book {
+  position: relative;
+  width: 88vw;
+  height: 82vh;
+  /* 书竖直摆放：正对观察者，不倾斜不透视 */
+}
+
+/* ------------------------- 封皮：四边露一圈薄薄的包边 -------------------------
+   参考真实平放摊开的书：纸面干净平坦，只有封皮包住的一圈细边 + 中缝阴影 */
+.book__cover {
+  position: absolute;
+  inset: -14px;
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(118deg, rgba(255, 255, 255, 0.10) 0 2px, rgba(120, 90, 50, 0.05) 2px 5px),
+    linear-gradient(165deg, #e8d3ae 0%, #dcc296 46%, #c9a97a 100%);
+  box-shadow:
+    0 24px 44px rgba(96, 62, 26, 0.24),
+    0 6px 14px rgba(96, 62, 26, 0.16),
+    inset 0 1px 0 rgba(255, 250, 236, 0.75);
+  /* 上/下沿在中缝处随书脊下凹，让包边成为一条弧带 */
+  -webkit-mask-image: var(--cover-mask);
+  mask-image: var(--cover-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* 封皮压线：只保留左右两侧竖线（上下两段会撞上弧形边，故不画） */
+.book__cover::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 9px;
+  border: none;
+  border-left: 1px solid rgba(150, 108, 58, 0.30);
+  border-right: 1px solid rgba(150, 108, 58, 0.30);
+}
+
+/* V 口里的软阴影 + 纸厚亮边（几何与 mask 完全同一套坐标） */
+.book__notch {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9;
+  pointer-events: none;
+  display: block;
+  overflow: visible;
+}
+
+/* V 口下方压出一小片凹阴影：让透出来的封皮是陷进去的，上下对称 */
+.book__cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background:
+    radial-gradient(170px 40px at 50% 2px, rgba(78, 46, 16, 0.42), rgba(78, 46, 16, 0) 78%),
+    radial-gradient(170px 40px at 50% calc(100% - 2px), rgba(60, 34, 10, 0.46), rgba(60, 34, 10, 0) 78%);
+  pointer-events: none;
+}
+
+/* ------------------------- 投影（贴在书下方） ------------------------- */
+.book__shadow {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: -62px;
+  height: 74px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(96, 62, 26, 0.30), rgba(96, 62, 26, 0) 74%);
+  filter: blur(18px);
+}
+
+/* ============================ 纸页 ============================
+   纸页本身在中缝两端裁出与纸边相切的 V 口（mask），下面透出的就是真实封皮，
+   颜色天然一致、没有贴片感；封皮一侧再压一小片凹阴影表现"陷进去" */
+.book__paper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--color-paper);
+  -webkit-mask-image: var(--paper-mask);
+  mask-image: var(--paper-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  box-shadow:
+    0 0 0 1px rgba(160, 118, 66, 0.18),
+    /* 极轻的卷曲暗部，保持纯白观感 */
+    inset 0 14px 22px -16px rgba(146, 100, 52, 0.22),
+    inset 0 -16px 24px -16px rgba(146, 100, 52, 0.20);
+}
+
+/* 折叠的证据：一张纸对折摊开后，书缝两端的页边会沉进折痕里，
+   那里有一小片柔和的凹陷阴影（不是刻洞，只是光影） */
+.book__paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    radial-gradient(230px 26px at 50% 0, rgba(94, 56, 20, 0.26), rgba(94, 56, 20, 0) 72%),
+    radial-gradient(230px 26px at 50% 100%, rgba(94, 56, 20, 0.22), rgba(94, 56, 20, 0) 72%);
+}
+
+/* 书页里的场景（被遮罩挡住，墨迹晕开才透出来） */
+.book__scene {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  /* 自带与纸页一致的圆角：即使某些渲染器没裁剪，也不会露出方形角 */
+  border-radius: 7px;
+  background-image: url("assets/tang-bg.png");
+  background-size: cover;
+  background-position: center 68%;
+  background-repeat: no-repeat;
+}
+
+/* 遮罩画布：铺"纸 + 横格线 + 书脊阴影"，墨点在这上面挖洞 */
+.book__mask {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  pointer-events: none;
+}
+
+/* ---------------------------- 单页 ---------------------------- */
+.page {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* 靠近书缝的纸面亮度衰减（阴影/坡面在居中图层统一画，这里只做一层柔和的压暗） */
+}
+
+.page--left::before,
+.page--right::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 150px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* 中缝旁的"弯进去"：纸页鼓起一个受光的圆肩，然后平滑地沉进书缝。
+   弯折带只负责"圆肩受光"，不再各自压一道暗面——
+   这样整条中缝只有中间那一道阴影（否则会看成两道） */
+.page--left::before {
+  right: 0;
+  background: linear-gradient(to right,
+      rgba(255, 250, 238, 0) 0%,
+      rgba(255, 250, 238, 0.08) 30%,
+      rgba(255, 250, 238, 0.20) 50%,
+      rgba(255, 250, 238, 0.10) 66%,
+      rgba(255, 250, 238, 0) 84%);
+}
+
+.page--right::before {
+  left: 0;
+  background: linear-gradient(to left,
+      rgba(255, 250, 238, 0) 0%,
+      rgba(255, 250, 238, 0.08) 30%,
+      rgba(255, 250, 238, 0.20) 50%,
+      rgba(255, 250, 238, 0.10) 66%,
+      rgba(255, 250, 238, 0) 84%);
+}
+
+/* 左右页的曲面光影（单一暗谷）：
+   外缘薄暗 → 页面中段最亮 → 缓缓压向中缝，汇入书缝那唯一的一道阴影
+   （去掉白色高光层 = 去掉朦胧感；暗部只收敛出一道，不再出现两道） */
+.page--left::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to right,
+      rgba(146, 100, 52, 0.10) 0%,
+      rgba(146, 100, 52, 0.02) 4%,
+      rgba(255, 255, 255, 0.05) 14%,
+      rgba(132, 90, 46, 0.02) 40%,
+      rgba(126, 84, 40, 0.05) 62%,
+      rgba(116, 78, 36, 0.10) 82%,
+      rgba(104, 66, 28, 0.16) 94%,
+      rgba(88, 54, 20, 0.20) 100%);
+}
+
+/* 右页镜像 */
+.page--right::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to left,
+      rgba(146, 100, 52, 0.10) 0%,
+      rgba(146, 100, 52, 0.02) 4%,
+      rgba(255, 255, 255, 0.05) 14%,
+      rgba(132, 90, 46, 0.02) 40%,
+      rgba(126, 84, 40, 0.05) 62%,
+      rgba(116, 78, 36, 0.10) 82%,
+      rgba(104, 66, 28, 0.16) 94%,
+      rgba(88, 54, 20, 0.20) 100%);
+}
+
+/* ============================ 左页：垚垚 ============================ */
+.doll {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: end center;
+}
+
+/* 立绘容器：宽高比锁定为原图比例，眼睛贴图按百分比定位 */
+.doll__figure {
+  position: relative;
+  height: 96%;
+  aspect-ratio: 864 / 1920;
+}
+
+.doll__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 22px 30px rgba(120, 62, 20, 0.28));
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ---- 会动的眼睛：圆片是立绘原图抠出的真实虹膜 ----
+   实测虹膜中心（原图 864×1920）：L (326,743) / R (545,754)，
+   圆片直径 96px，带 9px 羽化边，底下垫的是修补过的底图 */
+.doll__eye {
+  position: absolute;
+  width: 11.2%;
+  /* 96 / 864 */
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  /* 裁掉藏在上面、只眨眼时落下的眼皮 */
+  transform: translate(-50%, -50%);
+  will-change: transform;
+}
+
+.doll__eye--l {
+  left: 37.7%;
+  top: 38.7%;
+}
+
+.doll__eye--r {
+  left: 63.1%;
+  top: 39.3%;
+}
+
+/* 虹膜圆片（assets/eye-l.png / eye-r.png） */
+.doll__iris {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* 眼皮：肤色圆片，眨眼时从上盖下来 */
+.doll__lid {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  top: -6%;
+  height: 112%;
+  border-radius: 50%;
+  background: #ffe0c7;
+  transform: translateY(-112%);
+}
+
+.doll__eye.is-blinking .doll__lid {
+  animation: doll-lid 0.26s ease;
+}
+
+@keyframes doll-lid {
+  0% {
+    transform: translateY(-112%);
+  }
+
+  45% {
+    transform: translateY(-4%);
+  }
+
+  100% {
+    transform: translateY(-112%);
+  }
+}
+
+/* ============================ 右页：登录 ============================ */
+.page--right {
+  display: grid;
+  place-items: center;
+  padding: 48px 56px 48px 44px;
+}
+
+.login-wrap {
+  position: relative;
+  z-index: 1;
+  width: 380px;
+  max-width: 100%;
+  /* 登录卡片外框：半透明白底 + 暖棕描边，让"欢迎回来"这一片成组 */
+  padding: 34px 36px 30px;
+  border: 1.5px solid rgba(163, 118, 61, 0.45);
+  border-radius: 22px;
+  background: rgba(255, 253, 248, 0.66);
+  box-shadow:
+    0 10px 26px rgba(120, 82, 40, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* 框内四角的小装饰线，呼应书页风格 */
+.login-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(163, 118, 61, 0.18);
+  border-radius: 17px;
+  pointer-events: none;
+}
+
+.login__title {
+  margin: 0 0 30px;
+  font-family: var(--font-serif);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #4a3520;
+}
+
+.login {
+  width: 100%;
+}
+
+.login__field {
+  display: block;
+  margin-bottom: 18px;
+}
+
+.login__label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 13px;
+  color: #6d5232;
+}
+
+.login__input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid rgba(163, 118, 61, 0.42);
+  border-radius: 14px;
+  background: rgba(255, 253, 248, 0.86);
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-ink);
+  outline: none;
+  backdrop-filter: blur(2px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.login__input::placeholder {
+  color: #bdaa8b;
+}
+
+.login__input:focus {
+  border-color: #c98a4b;
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 0 0 4px rgba(201, 138, 75, 0.16);
+}
+
+.login__field.is-error .login__input {
+  border-color: #c0563a;
+  box-shadow: 0 0 0 4px rgba(192, 86, 58, 0.13);
+}
+
+.login__error {
+  display: block;
+  min-height: 17px;
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: #c0563a;
+}
+
+.login__submit {
+  width: 100%;
+  margin-top: 6px;
+  padding: 14px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #d98e4e, #b96a2e);
+  color: #fff8ee;
+  font: inherit;
+  font-size: 16px;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(185, 106, 46, 0.32);
+  transition: transform 0.12s ease, filter 0.2s ease;
+}
+
+.login__submit:hover {
+  filter: brightness(1.06);
+}
+
+.login__submit:active {
+  transform: translateY(1px);
+}
+
+/* .login__hint {
+  margin: 20px 0 0;
+  font-family: var(--font-serif);
+  font-size: 12px;
+  color: var(--color-amber);
+  opacity: 0.9;
+} */
+
+/* ============================ 书缝（两页之间的凹槽） ============================ */
+.book__spine {
+  position: absolute;
+  top: -14px;
+  bottom: -20px;
+  left: 50%;
+  width: 128px;
+  transform: translateX(-50%);
+  z-index: 6;
+  pointer-events: none;
+  /* 只保留一道连续的暗谷：中缝最深、平滑向两侧变浅，
+     不再有反光亮带把阴影切成两道 */
+  background: linear-gradient(to right,
+      rgba(74, 45, 14, 0) 0%,
+      rgba(74, 45, 14, 0.04) 22%,
+      rgba(52, 30, 6, 0.16) 38%,
+      rgba(26, 14, 2, 0.42) 50%,
+      rgba(52, 30, 6, 0.16) 62%,
+      rgba(74, 45, 14, 0.04) 78%,
+      rgba(74, 45, 14, 0) 100%);
+}
+
+/* 缝底的一条细亮线：纸页在折痕处被压出的高光 */
+.book__spine::after {
+  content: "";
+  position: absolute;
+  top: 4%;
+  bottom: 4%;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom,
+      rgba(255, 248, 232, 0) 0%,
+      rgba(255, 248, 232, 0.85) 8%,
+      rgba(255, 248, 232, 0.45) 50%,
+      rgba(255, 248, 232, 0.85) 92%,
+      rgba(255, 248, 232, 0) 100%);
+  opacity: 0.30;
+}
+
+/* ============================ 响应式 ============================ */
+@media (max-width: 1080px) {
+  .login__title {
+    font-size: 28px;
+  }
+
+  .page--right {
+    padding: 32px;
+  }
+
+  .login-wrap {
+    width: 300px;
+  }
+}
+
+@media (max-width: 860px) {
+
+  html,
+  body {
+    overflow: auto;
+  }
+
+  .hero {
+    height: auto;
+    min-height: 100vh;
+    padding: 28px 0 40px;
+  }
+
+  .stage {
+    position: relative;
+    inset: auto;
+    display: block;
+  }
+
+  .book {
+    width: 92vw;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  .book__paper {
+    flex-direction: column;
+  }
+
+  .book__shadow,
+  .book__spine {
+    display: none;
+  }
+
+  .page--left {
+    height: 320px;
+  }
+
+  .page--right {
+    padding: 28px 24px 40px;
+  }
+
+  .login-wrap {
+    width: 100%;
+  }
+
+  .doll__img {
+    height: 100%;
+  }
+}

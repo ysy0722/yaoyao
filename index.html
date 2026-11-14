@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>垚垚 · 登录</title>
+  <meta name="description" content="立体书页 · 左页垚垚 / 右页登录，打字时墨迹在书页上晕开" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <section class="hero" id="hero">
+    <!-- 页面四周的底色场景（只是背景，不参与晕开效果） -->
+    <div class="hero__bg" aria-hidden="true"></div>
+
+    <main class="stage">
+      <!-- 立体书：封皮包边 + 平整纸页 -->
+      <div class="book" id="book">
+        <!-- 最底层：浅色封皮，像参考图那样只露一圈薄包边 -->
+        <div class="book__cover" aria-hidden="true"></div>
+
+        <div class="book__shadow" aria-hidden="true"></div>
+
+        <!-- 纸张本体（打开的两页） -->
+        <div class="book__paper">
+          <!-- 书页里被遮住的场景：墨迹晕开时透出的就是它 -->
+          <div class="book__scene" aria-hidden="true"></div>
+
+          <!-- 遮罩画布：铺一层"纸"，墨点在上面挖开 -->
+          <canvas class="book__mask" id="bookMask" aria-hidden="true"></canvas>
+
+          <!-- ================= 左页：垚垚 ================= -->
+          <section class="page page--left" aria-label="垚垚">
+            <div class="doll">
+              <!-- 立绘容器：宽高比固定，眼睛圆片按百分比定位 -->
+              <div class="doll__figure">
+                <!-- 底图：原立绘把虹膜挖掉、用周围肤色/眼白修补过 -->
+                <img class="doll__img" src="assets/avatar-base.png" alt="小唐" draggable="false" />
+
+                <!-- 会动的眼睛：圆片就是立绘里抠出来的真实虹膜像素，JS 驱动移动 + 眨眼 -->
+                <span class="doll__eye doll__eye--l" aria-hidden="true">
+                  <img class="doll__iris" src="assets/eye-l.png" alt="" draggable="false" />
+                  <span class="doll__lid"></span>
+                </span>
+                <span class="doll__eye doll__eye--r" aria-hidden="true">
+                  <img class="doll__iris" src="assets/eye-r.png" alt="" draggable="false" />
+                  <span class="doll__lid"></span>
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <!-- ================= 右页：登录 ================= -->
+          <section class="page page--right" aria-label="登录">
+            <div class="login-wrap">
+              <h2 class="login__title">欢迎回来</h2>
+
+              <form class="login" id="loginForm" novalidate>
+                <label class="login__field">
+                  <span class="login__label">姓名</span>
+                  <input class="login__input" id="nameInput" type="text" name="name" placeholder="请输入你的姓名"
+                    autocomplete="name" />
+                  <span class="login__error" id="nameError"></span>
+                </label>
+
+                <label class="login__field">
+                  <span class="login__label">手机号</span>
+                  <input class="login__input" id="phoneInput" type="tel" name="phone" placeholder="请输入 11 位手机号"
+                    maxlength="11" inputmode="numeric" autocomplete="tel" />
+                  <span class="login__error" id="phoneError"></span>
+                </label>
+
+                <button class="login__submit" type="submit" id="loginBtn">登 录</button>
+              </form>
+            </div>
+          </section>
+
+          <!-- 书脊折痕 -->
+          <div class="book__spine" aria-hidden="true"></div>
+        </div>
+
+        <!-- 纸页在中缝两端凹进去：V 口由 .book__paper 的 mask 直接裁出，
+             下面透出的就是真实封皮（颜色天然一致，没有贴片感）。
+             这一层只负责 V 口里的一道软阴影 + 纸厚亮边 -->
+        <svg class="book__notch" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
+          <!-- 纸厚亮边：严格压在 mask 的 V 口轮廓上 -->
+          <path d="M382 0 C430 0 470 4 500 22 C530 4 570 0 618 0" fill="none" stroke="rgba(255, 252, 244, 0.9)"
+            stroke-width="1.2" vector-effect="non-scaling-stroke" />
+          <path d="M382 1000 C430 1000 470 996 500 978 C530 996 570 1000 618 1000" fill="none"
+            stroke="rgba(255, 252, 244, 0.85)" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+          <!-- V 口内侧一道极淡的暗线：纸边压在封皮上的接触阴影 -->
+          <path d="M382 -2.5 C430 -2.5 470 1.5 500 19.5 C530 1.5 570 -2.5 618 -2.5" fill="none"
+            stroke="rgba(96, 62, 26, 0.30)" stroke-width="1" vector-effect="non-scaling-stroke" />
+          <path d="M382 1002.5 C430 1002.5 470 998.5 500 980.5 C530 998.5 570 1002.5 618 1002.5" fill="none"
+            stroke="rgba(96, 62, 26, 0.32)" stroke-width="1" vector-effect="non-scaling-stroke" />
+        </svg>
+      </div>
+    </main>
+  </section>
+  <script src="main.js"></script>
+</body>
+
+</html>
